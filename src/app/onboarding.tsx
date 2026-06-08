@@ -7,11 +7,11 @@ export default function Onboarding() {
   const router = useRouter();
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={{ flex: 1 }} className="bg-background">
       {/* Header: mascot logo + app name */}
       <View className="flex-row items-center justify-center px-6 pt-2 gap-2">
         <Image
-          source={require("../../assets/images/moscot-logo.png")}
+          source={require("../../assets/images/mascot-logo.png")}
           className="w-9 h-9"
         />
         <Text className="text-xl text-text-primary" style={{ fontFamily: "Poppins-SemiBold" }}>

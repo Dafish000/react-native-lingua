@@ -1,12 +1,16 @@
-import { useState } from "react";
-import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StyleSheet, TextInput } from "react-native";
+import { useAuth, useSignIn, useSSO } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
+import { Redirect, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { useState } from "react";
+import { Alert, StyleSheet, TextInput } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { VerificationModal } from "../components/VerificationModal";
+import { images } from "../constants/images";
 import { Pressable, ScrollView, Text, View } from "../tw";
 import { Image } from "../tw/image";
-import { images } from "../constants/images";
-import { VerificationModal } from "../components/VerificationModal";
+
+WebBrowser.maybeCompleteAuthSession();
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -14,13 +18,16 @@ function SocialButton({
   iconName,
   iconColor,
   label,
+  onPress,
 }: {
   iconName: IoniconName;
   iconColor: string;
   label: string;
+  onPress: () => void;
 }) {
   return (
     <Pressable
+      onPress={onPress}
       className="flex-row items-center gap-4 px-5 rounded-2xl mb-3"
       style={styles.socialBtn}
     >
@@ -34,12 +41,83 @@ function SocialButton({
 
 export default function SignIn() {
   const router = useRouter();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
+  const { signIn } = useSignIn();
+  const { startSSOFlow } = useSSO();
   const [email, setEmail] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSignIn() {
+  if (!authLoaded) return null;
+  if (isSignedIn) return <Redirect href="/home" />;
+
+  async function handleSignIn() {
+    setError("");
     if (!email.trim()) return;
-    setModalVisible(true);
+    try {
+      const { error: createError } = await signIn.create({ identifier: email.trim() });
+      if (createError) {
+        setError(createError.longMessage || createError.message || "Sign in failed");
+        return;
+      }
+      const { error: sendError } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
+      if (sendError) {
+        setError(sendError.longMessage || sendError.message || "Failed to send code");
+        return;
+      }
+      setModalVisible(true);
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign in failed");
+    }
+  }
+
+  async function handleVerify(code: string) {
+    try {
+      const { error: verifyError } = await signIn.emailCode.verifyCode({ code });
+      if (verifyError) {
+        Alert.alert("Invalid code", verifyError.longMessage || verifyError.message || "Verification failed");
+        return;
+      }
+      const { error: finalizeError } = await signIn.finalize();
+      if (finalizeError) {
+        Alert.alert("Error", finalizeError.longMessage || finalizeError.message || "Could not complete sign in");
+        return;
+      }
+      setModalVisible(false);
+      router.replace("/home" as any);
+    } catch (err: any) {
+      Alert.alert("Error", err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed");
+    }
+  }
+
+  async function handleResend() {
+    try {
+      const { error } = await signIn.emailCode.sendCode({ emailAddress: email.trim() });
+      if (error) {
+        Alert.alert("Error", error.longMessage || error.message || "Failed to resend");
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.errors?.[0]?.longMessage ?? err?.message ?? "Failed to resend");
+    }
+  }
+
+  async function handleSocialSignIn(strategy: "oauth_google" | "oauth_apple" | "oauth_facebook") {
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy,
+        redirectUrl: "fleamarket://oauth-callback",
+      });
+      if (createdSessionId) {
+        if (typeof setActive === "function") {
+          await setActive({ session: createdSessionId });
+        } else {
+          console.warn("Clerk SSO flow returned no setActive function; proceeding to redirect.");
+        }
+        router.replace("/home" as any);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Social sign-in failed");
+    }
   }
 
   return (
@@ -84,6 +162,11 @@ export default function SignIn() {
           />
         </View>
 
+        {/* Inline error — visible on web and native */}
+        {error ? (
+          <Text className="body-sm text-error text-center mb-2">{error}</Text>
+        ) : null}
+
         {/* Sign In button */}
         <Pressable
           onPress={handleSignIn}
@@ -103,9 +186,24 @@ export default function SignIn() {
         </View>
 
         {/* Social buttons */}
-        <SocialButton iconName="logo-google" iconColor="#4285F4" label="Continue with Google" />
-        <SocialButton iconName="logo-facebook" iconColor="#1877F2" label="Continue with Facebook" />
-        <SocialButton iconName="logo-apple" iconColor="#000000" label="Continue with Apple" />
+        <SocialButton
+          iconName="logo-google"
+          iconColor="#4285F4"
+          label="Continue with Google"
+          onPress={() => handleSocialSignIn("oauth_google")}
+        />
+        <SocialButton
+          iconName="logo-facebook"
+          iconColor="#1877F2"
+          label="Continue with Facebook"
+          onPress={() => handleSocialSignIn("oauth_facebook")}
+        />
+        <SocialButton
+          iconName="logo-apple"
+          iconColor="#000000"
+          label="Continue with Apple"
+          onPress={() => handleSocialSignIn("oauth_apple")}
+        />
 
         {/* Sign Up link */}
         <Pressable
@@ -125,6 +223,8 @@ export default function SignIn() {
         visible={modalVisible}
         email={email}
         onClose={() => setModalVisible(false)}
+        onVerify={handleVerify}
+        onResend={handleResend}
       />
     </SafeAreaView>
   );

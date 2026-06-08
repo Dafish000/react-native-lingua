@@ -1,12 +1,16 @@
+import { useAuth, useSignUp, useSSO } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, TextInput } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VerificationModal } from "../components/VerificationModal";
 import { images } from "../constants/images";
 import { Pressable, ScrollView, Text, View } from "../tw";
 import { Image } from "../tw/image";
+
+WebBrowser.maybeCompleteAuthSession();
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -37,12 +41,91 @@ function SocialButton({
 
 export default function SignUp() {
   const router = useRouter();
+  const { isSignedIn, isLoaded: authLoaded } = useAuth();
+  const { signUp } = useSignUp();
+  const { startSSOFlow } = useSSO();
   const [email, setEmail] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSignUp() {
-    if (!email.trim()) return;
-    setModalVisible(true);
+  if (!authLoaded) return null;
+  if (isSignedIn) return <Redirect href="/home" />;
+
+  async function handleSignUp() {
+    setError("");
+    if (!email.trim()) {
+      setError("Please enter your email address.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: createError } = await signUp.create({ emailAddress: email.trim() });
+      if (createError) {
+        setError(createError.longMessage || createError.message || "Sign up failed");
+        return;
+      }
+      const { error: sendError } = await signUp.verifications.sendEmailCode();
+      if (sendError) {
+        setError(sendError.longMessage || sendError.message || "Failed to send code");
+        return;
+      }
+      setModalVisible(true);
+    } catch (err: any) {
+      const message = err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign up failed";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerify(code: string) {
+    try {
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({ code });
+      if (verifyError) {
+        Alert.alert("Invalid code", verifyError.longMessage || verifyError.message || "Verification failed");
+        return;
+      }
+      const { error: finalizeError } = await signUp.finalize();
+      if (finalizeError) {
+        Alert.alert("Error", finalizeError.longMessage || finalizeError.message || "Could not complete sign up");
+        return;
+      }
+      setModalVisible(false);
+      router.replace("/home" as any);
+    } catch (err: any) {
+      Alert.alert("Error", err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed");
+    }
+  }
+
+  async function handleResend() {
+    try {
+      const { error } = await signUp.verifications.sendEmailCode();
+      if (error) {
+        Alert.alert("Error", error.longMessage || error.message || "Failed to resend");
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.errors?.[0]?.longMessage ?? err?.message ?? "Failed to resend");
+    }
+  }
+
+  async function handleSocialSignUp(strategy: "oauth_google" | "oauth_apple" | "oauth_facebook") {
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy,
+        redirectUrl: "fleamarket://oauth-callback",
+      });
+      if (createdSessionId) {
+        if (typeof setActive === "function") {
+          await setActive({ session: createdSessionId });
+        } else {
+          console.warn("Clerk SSO flow returned no setActive function; proceeding to redirect.");
+        }
+        router.replace("/home" as any);
+      }
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Social sign-in failed");
+    }
   }
 
   return (
@@ -87,15 +170,25 @@ export default function SignUp() {
           />
         </View>
 
+        {/* Inline error — visible on web and native */}
+        {error ? (
+          <Text className="body-sm text-error text-center mb-2">{error}</Text>
+        ) : null}
+
         {/* Sign Up button */}
         <Pressable
           onPress={handleSignUp}
+          disabled={loading}
           className="btn btn--primary rounded-2xl mt-2"
-          style={styles.mainBtn}
+          style={[styles.mainBtn, loading && { opacity: 0.7 }]}
         >
-          <Text className="text-white text-base" style={{ fontFamily: "Poppins-SemiBold" }}>
-            Sign Up
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text className="text-white text-base" style={{ fontFamily: "Poppins-SemiBold" }}>
+              Sign Up
+            </Text>
+          )}
         </Pressable>
 
         {/* Divider */}
@@ -110,19 +203,19 @@ export default function SignUp() {
           iconName="logo-google"
           iconColor="#4285F4"
           label="Continue with Google"
-          onPress={() => Alert.alert("Social sign-in", "Google sign-in is not implemented yet.")}
+          onPress={() => handleSocialSignUp("oauth_google")}
         />
         <SocialButton
           iconName="logo-facebook"
           iconColor="#1877F2"
           label="Continue with Facebook"
-          onPress={() => Alert.alert("Social sign-in", "Facebook sign-in is not implemented yet.")}
+          onPress={() => handleSocialSignUp("oauth_facebook")}
         />
         <SocialButton
           iconName="logo-apple"
           iconColor="#000000"
           label="Continue with Apple"
-          onPress={() => Alert.alert("Social sign-in", "Apple sign-in is not implemented yet.")}
+          onPress={() => handleSocialSignUp("oauth_apple")}
         />
 
         {/* Sign In link */}
@@ -143,6 +236,8 @@ export default function SignUp() {
         visible={modalVisible}
         email={email}
         onClose={() => setModalVisible(false)}
+        onVerify={handleVerify}
+        onResend={handleResend}
       />
     </SafeAreaView>
   );
