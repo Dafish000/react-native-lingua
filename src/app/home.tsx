@@ -22,8 +22,16 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <View className="flex-1 justify-center items-center">
+      <View className="flex-1 justify-center items-center gap-4">
         <Text className="h1 text-primary">Lingua</Text>
+        <Pressable
+          onPress={() => router.push("/language-select" as any)}
+          className="btn btn--primary rounded-2xl"
+        >
+          <Text className="text-white text-base" style={{ fontFamily: "Poppins-SemiBold" }}>
+            Choose a Language
+          </Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
