@@ -1,15 +1,21 @@
-import { useState } from "react";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Pressable, ScrollView, Text, View } from "../tw";
-import { Image } from "../tw/image";
 import { LANGUAGES } from "../data/languages";
+import { Pressable, ScrollView, Text, TextInput, View } from "../tw";
+import { Image } from "../tw/image";
 
 export default function LanguageSelect() {
   const router = useRouter();
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const selectedLanguage = LANGUAGES.find((l) => l.code === selectedCode);
+  const filteredLanguages = LANGUAGES.filter(
+    (l) =>
+      l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      l.nativeName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background">
@@ -23,18 +29,9 @@ export default function LanguageSelect() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerClassName="pb-36 px-6">
-        {/* Earth image */}
-        <View className="items-center pt-6 pb-4">
-          <Image
-            source={require("../../assets/images/earth.png")}
-            className="w-40 h-40"
-            style={{ objectFit: "contain" } as any}
-          />
-        </View>
-
+      <ScrollView className="flex-1" contentContainerClassName="pb-4 px-6">
         {/* Title */}
-        <View className="pb-8">
+        <View className="pt-6 pb-6">
           <Text className="h2 text-center">
             What do you want{"\n"}to learn?
           </Text>
@@ -43,9 +40,34 @@ export default function LanguageSelect() {
           </Text>
         </View>
 
+        {/* Search bar */}
+        <View className="flex-row items-center bg-surface rounded-2xl px-4 mb-6 border border-border">
+          <Text className="text-text-secondary text-base mr-2">🔍</Text>
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search Language"
+            placeholderTextColor="#9CA3AF"
+            className="flex-1 py-3.5 body-md text-text-primary"
+            style={{ fontFamily: "Poppins-Regular" }}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery("")} className="p-1">
+              <Text className="text-text-secondary text-base">✕</Text>
+            </Pressable>
+          )}
+        </View>
+
         {/* Language list — vertical */}
         <View className="gap-3">
-          {LANGUAGES.map((lang) => {
+          {filteredLanguages.length === 0 ? (
+            <View className="items-center py-10">
+              <Text className="body-md text-text-secondary">No languages found</Text>
+            </View>
+          ) : null}
+          {filteredLanguages.map((lang) => {
             const isSelected = selectedCode === lang.code;
             return (
               <Pressable
@@ -88,11 +110,17 @@ export default function LanguageSelect() {
         </View>
       </ScrollView>
 
+      {/* Earth image — anchored between language list and button */}
+      <View className="bg-surface">
+        <Image
+          source={require("../../assets/images/earth.png")}
+          className="w-full h-48"
+          style={{ objectFit: "contain", backgroundColor: "transparent" } as any}
+        />
+      </View>
+
       {/* Confirmation button */}
-      <View
-        className="absolute bottom-0 left-0 right-0 px-6 pt-4 bg-background"
-        style={{ paddingBottom: 36 }}
-      >
+      <View className="px-6 pt-2 bg-transparent" style={{ paddingBottom: 36 }}>
         <Pressable
           onPress={() => {
             if (selectedCode) router.push("/home" as any);
