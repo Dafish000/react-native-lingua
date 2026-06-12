@@ -1,11 +1,13 @@
 import { useAuth } from "@clerk/expo";
 import { Redirect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLanguageStore } from "../store/languageStore";
 import { Pressable, Text, View } from "../tw";
 
 export default function Home() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const clearLanguage = useLanguageStore((s) => s.clearLanguage);
 
   if (!isLoaded) return null;
   if (!isSignedIn) return <Redirect href="/onboarding" />;
@@ -26,10 +28,18 @@ export default function Home() {
         <Text className="h1 text-primary">Lingua</Text>
         <Pressable
           onPress={() => router.push("/language-select" as any)}
-          className="btn btn--primary rounded-2xl"
+          className="btn btn--lg btn--primary rounded-4xl px-4 py-2"
         >
-          <Text className="text-white text-base" style={{ fontFamily: "Poppins-SemiBold" }}>
-            Choose a Language
+          <Text className="text-white text-md" style={{ fontFamily: "Poppins-SemiBold" }}>
+            Let's begin our journey!
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={clearLanguage}
+          className="btn btn--lg rounded-2xl bg-surface border border-border"
+        >
+          <Text className="body-md text-text-secondary" style={{ fontFamily: "Poppins-Medium" }}>
+            Clear Language (Test)
           </Text>
         </Pressable>
       </View>

@@ -2,11 +2,13 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LANGUAGES } from "../data/languages";
+import { useLanguageStore } from "../store/languageStore";
 import { Pressable, ScrollView, Text, TextInput, View } from "../tw";
 import { Image } from "../tw/image";
 
 export default function LanguageSelect() {
   const router = useRouter();
+  const setLanguage = useLanguageStore((s) => s.setLanguage);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -123,7 +125,10 @@ export default function LanguageSelect() {
       <View className="px-6 pt-2 bg-transparent" style={{ paddingBottom: 36 }}>
         <Pressable
           onPress={() => {
-            if (selectedCode) router.push("/home" as any);
+            if (selectedCode) {
+              setLanguage(selectedCode);
+              router.push("/home" as any);
+            }
           }}
           disabled={!selectedCode}
           className="btn btn--lg btn--primary rounded-2xl"

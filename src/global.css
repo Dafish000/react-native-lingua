@@ -151,6 +151,13 @@
   border-radius: 10px;
 }
 
+@utility btn--md {
+  padding-horizontal: 24px;
+  padding-vertical: 14px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
 @utility btn--lg {
   padding-horizontal: 32px;
   padding-vertical: 18px;
