@@ -227,6 +227,27 @@
   color: #FFFFFF;
 }
 
+/* ─── Tab bar BEM utilities ───────────────────────────────────────── */
+@utility tab-bar {
+  background-color: #FFFFFF;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+}
+
+@utility tab-bar__item {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+@utility tab-bar__label {
+  font-family: "Poppins-Medium";
+  font-size: 11px;
+  color: #6B7280;
+}
+
 /* ─── Input BEM utilities ─────────────────────────────────────────── */
 @utility input {
   background-color: #F6F7FB;
