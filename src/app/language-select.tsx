@@ -51,7 +51,6 @@ export default function LanguageSelect() {
             placeholder="Search Language"
             placeholderTextColor="#9CA3AF"
             className="flex-1 py-3.5 body-md text-text-primary"
-            style={{ fontFamily: "Poppins-Regular" }}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -122,7 +121,7 @@ export default function LanguageSelect() {
       </View>
 
       {/* Confirmation button */}
-      <View className="px-6 pt-2 bg-transparent" style={{ paddingBottom: 36 }}>
+      <View className="px-6 pt-2 pb-9 bg-transparent">
         <Pressable
           onPress={() => {
             if (selectedCode) {

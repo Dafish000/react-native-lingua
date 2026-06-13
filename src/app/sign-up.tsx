@@ -3,11 +3,11 @@ import { Ionicons } from "@expo/vector-icons";
 import * as WebBrowser from "expo-web-browser";
 import { Redirect, useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, TextInput } from "react-native";
+import { ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VerificationModal } from "../components/VerificationModal";
 import { images } from "../constants/images";
-import { Pressable, ScrollView, Text, View } from "../tw";
+import { Pressable, ScrollView, Text, TextInput, View } from "../tw";
 import { Image } from "../tw/image";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -28,8 +28,7 @@ function SocialButton({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-4 px-5 rounded-2xl mb-3"
-      style={styles.socialBtn}
+      className="flex-row items-center gap-4 px-5 rounded-2xl mb-3 py-4 border border-border bg-white"
     >
       <Ionicons name={iconName} size={22} color={iconColor} />
       <Text className="body-lg" style={{ fontFamily: "Poppins-Medium" }}>
@@ -131,6 +130,7 @@ export default function SignUp() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <ScrollView
+        className="flex-1"
         contentContainerClassName="px-6 pb-10"
         keyboardShouldPersistTaps="handled"
       >
@@ -166,7 +166,7 @@ export default function SignUp() {
             placeholderTextColor="#9CA3AF"
             keyboardType="email-address"
             autoCapitalize="none"
-            style={styles.input}
+            className="bg-surface rounded-xl border border-border px-4 py-3.5 font-poppins text-[15px] text-text-primary"
           />
         </View>
 
@@ -179,8 +179,8 @@ export default function SignUp() {
         <Pressable
           onPress={handleSignUp}
           disabled={loading}
-          className="btn btn--primary rounded-2xl mt-2"
-          style={[styles.mainBtn, loading && { opacity: 0.7 }]}
+          className="btn btn--primary rounded-2xl mt-2 py-5"
+          style={loading ? { opacity: 0.7 } : undefined}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -242,26 +242,3 @@ export default function SignUp() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  input: {
-    backgroundColor: "#F6F7FB",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: "Poppins-Regular",
-    fontSize: 15,
-    color: "#001328",
-  },
-  mainBtn: {
-    paddingVertical: 20,
-  },
-  socialBtn: {
-    paddingVertical: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
-  },
-});
