@@ -4,6 +4,7 @@ import { Redirect, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { Alert } from "react-native";
+import { usePostHog } from "posthog-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VerificationModal } from "../components/VerificationModal";
 import { images } from "../constants/images";
@@ -46,6 +47,7 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [error, setError] = useState("");
+  const posthog = usePostHog();
 
   if (!authLoaded) return null;
   if (isSignedIn) return <Redirect href="/home" />;
@@ -66,6 +68,7 @@ export default function SignIn() {
       }
       setModalVisible(true);
     } catch (err: any) {
+      posthog.captureException(err, { step: "sign_in_request", email: email.trim() });
       setError(err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign in failed");
     }
   }
@@ -82,9 +85,14 @@ export default function SignIn() {
         Alert.alert("Error", finalizeError.longMessage || finalizeError.message || "Could not complete sign in");
         return;
       }
+      posthog.identify(email.trim(), {
+        $set: { email: email.trim() },
+      });
+      posthog.capture("sign_in_completed", { method: "email" });
       setModalVisible(false);
       router.replace("/home" as any);
     } catch (err: any) {
+      posthog.captureException(err, { step: "sign_in_verify", email: email.trim() });
       Alert.alert("Error", err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed");
     }
   }
@@ -112,9 +120,11 @@ export default function SignIn() {
         } else {
           console.warn("Clerk SSO flow returned no setActive function; proceeding to redirect.");
         }
+        posthog.capture("sign_in_social_completed", { provider: strategy });
         router.replace("/home" as any);
       }
     } catch (err: any) {
+      posthog.captureException(err, { step: "sign_in_social", strategy });
       Alert.alert("Error", err?.message ?? "Social sign-in failed");
     }
   }
@@ -210,7 +220,7 @@ export default function SignIn() {
           className="items-center mt-6"
         >
           <Text className="body-md text-text-secondary">
-            Don't have an account?{" "}
+            {"Don't have an account?"}{" "}
             <Text className="body-md text-primary" style={{ fontFamily: "Poppins-SemiBold" }}>
               Sign up
             </Text>

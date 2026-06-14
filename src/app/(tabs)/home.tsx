@@ -1,5 +1,6 @@
 import { useUser } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
+import { usePostHog } from "posthog-react-native";
 import { images } from "../../constants/images";
 import { getLanguage } from "../../data/languages";
 import { getLessonsForUnit } from "../../data/lessons";
@@ -33,6 +34,7 @@ interface PlanItem {
 
 export default function Home() {
   const { user } = useUser();
+  const posthog = usePostHog();
   const selectedLanguage = useLanguageStore((s) => s.selectedLanguage);
   const language = selectedLanguage ? getLanguage(selectedLanguage) : null;
 
@@ -143,7 +145,16 @@ export default function Home() {
           <Text className="font-poppins text-[13px] text-white/70 mb-4">
             A1 · {currentUnit ? `Unit ${currentUnit.order}` : "Unit 1"}
           </Text>
-          <Pressable className="bg-white rounded-xl self-start px-5 py-2.5">
+          <Pressable
+            className="bg-white rounded-xl self-start px-5 py-2.5"
+            onPress={() =>
+              posthog.capture("lesson_continue_tapped", {
+                language: selectedLanguage,
+                unit: currentUnit?.id,
+                lesson: currentLesson?.title,
+              })
+            }
+          >
             <Text className="font-poppins-semibold text-[14px] text-primary">
               Continue
             </Text>
@@ -170,9 +181,17 @@ export default function Home() {
 
         <View className="bg-white rounded-2xl border border-border overflow-hidden">
           {todayPlan.map((item, index) => (
-            <View
+            <Pressable
               key={item.id}
               className="flex-row items-center px-4 py-3.5"
+              onPress={() =>
+                posthog.capture("today_plan_item_tapped", {
+                  item_id: item.id,
+                  item_title: item.title,
+                  completed: item.completed,
+                  language: selectedLanguage,
+                })
+              }
               style={{
                 borderBottomWidth: index < todayPlan.length - 1 ? 1 : 0,
                 borderBottomColor: "#F3F4F6",
@@ -199,7 +218,7 @@ export default function Home() {
               ) : (
                 <View className="w-6 h-6 rounded-full border-2 border-border" />
               )}
-            </View>
+            </Pressable>
           ))}
         </View>
       </View>

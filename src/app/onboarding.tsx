@@ -1,10 +1,12 @@
 import { useRouter } from "expo-router";
+import { usePostHog } from "posthog-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable, Text, View } from "../tw";
 import { Image } from "../tw/image";
 
 export default function Onboarding() {
   const router = useRouter();
+  const posthog = usePostHog();
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background">
@@ -94,7 +96,10 @@ export default function Onboarding() {
       {/* Get Started button */}
       <View className="px-6 pb-8">
         <Pressable
-          onPress={() => router.push("/sign-up" as any)}
+          onPress={() => {
+            posthog.capture("onboarding_get_started_tapped");
+            router.push("/sign-up" as any);
+          }}
           className="btn btn--primary flex-row items-center justify-center rounded-2xl"
         >
           <Text

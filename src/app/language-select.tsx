@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LANGUAGES } from "../data/languages";
@@ -11,6 +12,7 @@ export default function LanguageSelect() {
   const setLanguage = useLanguageStore((s) => s.setLanguage);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const posthog = usePostHog();
 
   const selectedLanguage = LANGUAGES.find((l) => l.code === selectedCode);
   const filteredLanguages = LANGUAGES.filter(
@@ -124,7 +126,11 @@ export default function LanguageSelect() {
       <View className="px-6 pt-2 pb-9 bg-transparent">
         <Pressable
           onPress={() => {
-            if (selectedCode) {
+            if (selectedCode && selectedLanguage) {
+              posthog.capture("language_selected", {
+                language_code: selectedCode,
+                language_name: selectedLanguage.name,
+              });
               setLanguage(selectedCode);
               router.push("/home" as any);
             }
