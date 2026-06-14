@@ -1,10 +1,10 @@
 import { useAuth, useSignUp, useSSO } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
 import { Redirect, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert } from "react-native";
-import { usePostHog } from "posthog-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { VerificationModal } from "../components/VerificationModal";
 import { images } from "../constants/images";
@@ -73,7 +73,7 @@ export default function SignUp() {
       }
       setModalVisible(true);
     } catch (err: any) {
-      posthog.captureException(err, { step: "sign_up_request", email: email.trim() });
+      posthog.captureException(err, { step: "sign_up_request" });
       const message = err?.errors?.[0]?.longMessage ?? err?.message ?? "Sign up failed";
       setError(message);
     } finally {
@@ -99,9 +99,9 @@ export default function SignUp() {
       });
       posthog.capture("sign_up_completed", { method: "email" });
       setModalVisible(false);
-      router.replace("/home" as any);
+      router.replace("/home");
     } catch (err: any) {
-      posthog.captureException(err, { step: "sign_up_verify", email: email.trim() });
+      posthog.captureException(err, { step: "sign_up_verify" });
       Alert.alert("Error", err?.errors?.[0]?.longMessage ?? err?.message ?? "Verification failed");
     }
   }
@@ -130,7 +130,7 @@ export default function SignUp() {
           console.warn("Clerk SSO flow returned no setActive function; proceeding to redirect.");
         }
         posthog.capture("sign_up_social_completed", { provider: strategy });
-        router.replace("/home" as any);
+        router.replace("/home");
       }
     } catch (err: any) {
       posthog.captureException(err, { step: "sign_up_social", strategy });
@@ -141,8 +141,8 @@ export default function SignUp() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <ScrollView
-        className="flex-1"
-        contentContainerClassName="px-6 pb-10"
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Back button */}
@@ -231,7 +231,7 @@ export default function SignUp() {
 
         {/* Sign In link */}
         <Pressable
-          onPress={() => router.push("/sign-in" as any)}
+          onPress={() => router.push("/sign-in")}
           className="items-center mt-6"
         >
           <Text className="body-md text-text-secondary">

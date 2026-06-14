@@ -8,7 +8,7 @@ export default {
     scheme: "fleamarket",
     userInterfaceStyle: "automatic",
     ios: {
-      icon: "./assets/expo.icon",
+      icon: "./assets/images/icon.png",
       bundleIdentifier: "com.anonymous.FleaMarket",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,

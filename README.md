@@ -10,7 +10,21 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Configure environment variables
+
+   Copy `.env.example` to `.env` and fill in your actual credentials:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Then edit `.env` and add:
+   - **EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY**: Get from [Clerk Dashboard](https://dashboard.clerk.com/apps) > API Keys
+   - **POSTHOG_PROJECT_TOKEN**: Get from [PostHog](https://app.posthog.com/project/settings)
+
+   **Important**: Never commit `.env` with real credentials. The `.env` file is listed in `.gitignore` to prevent accidental commits.
+
+3. Start the app
 
    ```bash
    npx expo start

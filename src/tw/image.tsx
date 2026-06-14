@@ -28,7 +28,7 @@ function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
 }
 
 export const Image = (props: ImageProps) => {
-  return useCssElement(CSSImage as any, props as any, { className: "style" }) as React.ReactElement;
+  return useCssElement(CSSImage, props, { className: "style" }) as React.ReactElement;
 };
 
 Image.displayName = "CSS(Image)";

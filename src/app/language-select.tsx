@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { images } from "../constants/images";
 import { LANGUAGES } from "../data/languages";
 import { useLanguageStore } from "../store/languageStore";
 import { Pressable, ScrollView, Text, TextInput, View } from "../tw";
@@ -86,7 +87,7 @@ export default function LanguageSelect() {
                 <Image
                   source={{ uri: lang.flag }}
                   className="w-14 h-9 rounded-md"
-                  style={{ objectFit: "cover" } as any}
+                  style={{ resizeMode: "cover" }}
                 />
                 <View className="ml-4 flex-1">
                   <Text
@@ -116,9 +117,9 @@ export default function LanguageSelect() {
       {/* Earth image — anchored between language list and button */}
       <View className="bg-surface">
         <Image
-          source={require("../../assets/images/earth.png")}
+          source={images.earth}
           className="w-full h-48"
-          style={{ objectFit: "contain", backgroundColor: "transparent" } as any}
+          style={{ resizeMode: "contain", backgroundColor: "transparent" }}
         />
       </View>
 
@@ -132,7 +133,7 @@ export default function LanguageSelect() {
                 language_name: selectedLanguage.name,
               });
               setLanguage(selectedCode);
-              router.push("/home" as any);
+              router.push("/home");
             }
           }}
           disabled={!selectedCode}
