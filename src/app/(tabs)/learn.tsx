@@ -9,30 +9,10 @@ import { getUnitsForLanguage } from "../../data/units";
 import { useLanguageStore } from "../../store/languageStore";
 import { Pressable, ScrollView, Text, View } from "../../tw";
 import { Image } from "../../tw/image";
+import { getLessonStatus, type LessonStatus } from "../../data/progress";
 import type { Lesson, Unit } from "../../types/learning";
 
-type LessonStatus = "completed" | "inProgress" | "notStarted";
 type ActiveTab = "lessons" | "practice";
-
-// TODO: Temporary placeholder progress data.
-// The `LESSON_STATUS` map below contains hard-coded demo values used for
-// UI illustration. Replace this with persistent per-user progress tracking
-// (e.g. local AsyncStorage / Zustand state or server-side API calls)
-// before releasing the app so lesson completion reflects real user data.
-const LESSON_STATUS: Record<string, LessonStatus> = {
-  "es-lesson-1": "completed",
-  "es-lesson-2": "inProgress",
-  "fr-lesson-1": "completed",
-  "fr-lesson-2": "inProgress",
-  "ja-lesson-1": "completed",
-  "ja-lesson-2": "inProgress",
-  "pt-lesson-1": "completed",
-  "pt-lesson-2": "inProgress",
-};
-
-function getLessonStatus(lessonId: string): LessonStatus {
-  return LESSON_STATUS[lessonId] ?? "notStarted";
-}
 
 // ── Status icon (right side of each lesson row) ───────────────────────────────
 function StatusIcon({ status }: { status: LessonStatus }) {
@@ -141,7 +121,7 @@ function UnitSection({
           lesson={lesson}
           lessonNumber={lessonIndex + 1}
           status={getLessonStatus(lesson.id)}
-          onPress={() => router.push(`/lesson/${lesson.id}`)}
+          onPress={() => router.push(`/audio-lesson/${lesson.id}`)}
         />
       ))}
     </View>
@@ -198,7 +178,7 @@ function PracticeTab({
         return (
           <Pressable
             key={lesson.id}
-            onPress={() => router.push(`/lesson/${lesson.id}`)}
+            onPress={() => router.push(`/audio-lesson/${lesson.id}`)}
             className="flex-row items-center mx-5 mb-3 p-4 rounded-2xl border border-border bg-white"
           >
             <View
