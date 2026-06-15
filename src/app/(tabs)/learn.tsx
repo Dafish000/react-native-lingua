@@ -7,13 +7,18 @@ import { getLanguage } from "../../data/languages";
 import { getLessonsForUnit } from "../../data/lessons";
 import { getUnitsForLanguage } from "../../data/units";
 import { useLanguageStore } from "../../store/languageStore";
-import type { Lesson, Unit } from "../../types/learning";
 import { Pressable, ScrollView, Text, View } from "../../tw";
 import { Image } from "../../tw/image";
+import type { Lesson, Unit } from "../../types/learning";
 
 type LessonStatus = "completed" | "inProgress" | "notStarted";
 type ActiveTab = "lessons" | "practice";
 
+// TODO: Temporary placeholder progress data.
+// The `LESSON_STATUS` map below contains hard-coded demo values used for
+// UI illustration. Replace this with persistent per-user progress tracking
+// (e.g. local AsyncStorage / Zustand state or server-side API calls)
+// before releasing the app so lesson completion reflects real user data.
 const LESSON_STATUS: Record<string, LessonStatus> = {
   "es-lesson-1": "completed",
   "es-lesson-2": "inProgress",
