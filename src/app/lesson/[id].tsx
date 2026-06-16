@@ -162,10 +162,12 @@ function FillInBlankActivity({
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function LessonScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const lesson = getLessonById(id);
 
-  const [activeTab, setActiveTab] = useState<PracticeTab>("vocabulary");
+  const [activeTab, setActiveTab] = useState<PracticeTab>(
+    tab === "activities" ? "activities" : "vocabulary"
+  );
   const [score, setScore] = useState({ correct: 0, total: 0 });
 
   if (!lesson) {

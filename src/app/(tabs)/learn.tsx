@@ -121,7 +121,7 @@ function UnitSection({
           lesson={lesson}
           lessonNumber={lessonIndex + 1}
           status={getLessonStatus(lesson.id)}
-          onPress={() => router.push(`/audio-lesson/${lesson.id}`)}
+          onPress={() => router.push(`/lesson/${lesson.id}`)}
         />
       ))}
     </View>
@@ -178,7 +178,7 @@ function PracticeTab({
         return (
           <Pressable
             key={lesson.id}
-            onPress={() => router.push(`/audio-lesson/${lesson.id}`)}
+            onPress={() => router.push(`/lesson/${lesson.id}?tab=activities`)}
             className="flex-row items-center mx-5 mb-3 p-4 rounded-2xl border border-border bg-white"
           >
             <View

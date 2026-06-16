@@ -137,7 +137,7 @@ export default function SignIn() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Back button */}
-        <Pressable onPress={() => router.back()} className="pt-4 pb-2 self-start">
+        <Pressable onPress={() => router.replace("/onboarding")} className="pt-4 pb-2 self-start">
           <Text className="text-2xl text-text-primary">‹</Text>
         </Pressable>
 

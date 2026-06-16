@@ -98,7 +98,7 @@ export default function Onboarding() {
         <Pressable
           onPress={() => {
             posthog.capture("onboarding_get_started_tapped");
-            router.push("/sign-up");
+            router.push("/sign-in");
           }}
           className="btn btn--primary flex-row items-center justify-center rounded-2xl"
         >

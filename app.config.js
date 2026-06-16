@@ -21,6 +21,7 @@ export default {
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
+      package: "com.anonymous.FleaMarket",
       predictiveBackGestureEnabled: false,
     },
     web: {
@@ -41,6 +42,15 @@ export default {
       ],
       "@clerk/expo",
       "expo-secure-store",
+      "@stream-io/video-react-native-sdk",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          cameraPermission: "$(PRODUCT_NAME) requires camera access for video lessons",
+          microphonePermission: "$(PRODUCT_NAME) requires microphone access for audio lessons",
+        },
+      ],
+      ["expo-build-properties", { android: { minSdkVersion: 24 } }],
     ],
     experiments: {
       typedRoutes: true,

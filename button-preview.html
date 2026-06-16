@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Button Design Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #F0EEF8;
+      min-height: 100vh;
+      padding: 48px 32px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 48px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9C8FD4;
+      margin-bottom: 20px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    /* ── Base btn ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.1s;
+      outline: none;
+    }
+    .btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { opacity: 1;    transform: translateY(0);    }
+
+    /* ── Variants ── */
+    .btn--primary   { background: #6C4EF5; color: #fff; }
+    .btn--secondary { background: #F6F7FB; color: #6C4EF5; border: 1px solid #E5E7EB; }
+    .btn--success   { background: #21C16B; color: #fff; }
+    .btn--danger    { background: #FF4D4F; color: #fff; }
+    .btn--glass {
+      background: rgba(255,255,255,0.18);
+      border: 1.5px solid rgba(255,255,255,0.35);
+      color: #fff;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── Sizes ── */
+    .btn--sm { padding: 10px 16px; font-size: 14px; border-radius: 10px; }
+    .btn--md { padding: 14px 24px; font-size: 16px; border-radius: 12px; }
+    .btn--lg { padding: 18px 32px; font-size: 18px; border-radius: 14px; }
+
+    /* ── Glass panel (dark bg) ── */
+    .glass-panel {
+      background: linear-gradient(135deg, #6C4EF5 0%, #A78BFA 100%);
+      border-radius: 20px;
+      padding: 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Full-width demo ── */
+    .full-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 360px;
+    }
+    .btn--full { width: 100%; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: #E5E7EB;
+      margin: 8px 0 40px;
+    }
+
+    /* label under buttons */
+    .btn-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-label {
+      font-size: 11px;
+      color: #9C8FD4;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Button Design Preview</h1>
+  <p class="subtitle">All variants × sizes from global.css @utility definitions</p>
+
+  <!-- VARIANTS -->
+  <div class="section">
+    <div class="section-title">Variants (md size)</div>
+    <div class="row">
+      <div class="btn-wrap">
+        <button class="btn btn--primary btn--md">Primary</button>
+        <span class="btn-label">btn--primary</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--secondary btn--md">Secondary</button>
+        <span class="btn-label">btn--secondary</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--success btn--md">Success</button>
+        <span class="btn-label">btn--success</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--danger btn--md">Danger</button>
+        <span class="btn-label">btn--danger</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GLASS (needs dark bg) -->
+  <div class="section">
+    <div class="section-title">Glass variant (on gradient background)</div>
+    <div class="glass-panel">
+      <div class="btn-wrap">
+        <button class="btn btn--glass btn--sm">Glass SM</button>
+        <span class="btn-label" style="color:rgba(255,255,255,0.6)">btn--glass sm</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--glass btn--md">Glass MD</button>
+        <span class="btn-label" style="color:rgba(255,255,255,0.6)">btn--glass md</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--glass btn--lg">Glass LG</button>
+        <span class="btn-label" style="color:rgba(255,255,255,0.6)">btn--glass lg</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIZES -->
+  <div class="section">
+    <div class="section-title">Sizes (primary variant)</div>
+    <div class="row" style="align-items: flex-end;">
+      <div class="btn-wrap">
+        <button class="btn btn--primary btn--sm">Small</button>
+        <span class="btn-label">btn--sm · 14px · r10</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--primary btn--md">Medium</button>
+        <span class="btn-label">btn--md · 16px · r12</span>
+      </div>
+      <div class="btn-wrap">
+        <button class="btn btn--primary btn--lg">Large</button>
+        <span class="btn-label">btn--lg · 18px · r14</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIZE GRID -->
+  <div class="section">
+    <div class="section-title">All variants × SM</div>
+    <div class="row">
+      <button class="btn btn--primary   btn--sm">Primary</button>
+      <button class="btn btn--secondary btn--sm">Secondary</button>
+      <button class="btn btn--success   btn--sm">Success</button>
+      <button class="btn btn--danger    btn--sm">Danger</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">All variants × LG</div>
+    <div class="row">
+      <button class="btn btn--primary   btn--lg">Primary</button>
+      <button class="btn btn--secondary btn--lg">Secondary</button>
+      <button class="btn btn--success   btn--lg">Success</button>
+      <button class="btn btn--danger    btn--lg">Danger</button>
+    </div>
+  </div>
+
+  <!-- FULL WIDTH (mobile pattern) -->
+  <div class="section">
+    <div class="section-title">Full-width (mobile screen pattern)</div>
+    <div class="full-row">
+      <button class="btn btn--primary   btn--lg btn--full">Get Started</button>
+      <button class="btn btn--secondary btn--lg btn--full">Sign In</button>
+      <button class="btn btn--success   btn--md btn--full">Submit Answer</button>
+      <button class="btn btn--danger    btn--md btn--full">Delete Account</button>
+    </div>
+  </div>
+
+</body>
+</html>

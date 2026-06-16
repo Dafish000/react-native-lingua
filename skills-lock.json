@@ -91,6 +91,54 @@
       "skillPath": "plugins/expo/skills/native-data-fetching/SKILL.md",
       "computedHash": "3cd0ba91f359f9f84cd40f36f356287994a0e952520fac6e03ef7952d0397879"
     },
+    "stream": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream/SKILL.md",
+      "computedHash": "ca021692277f82a39d0e68c1dcfea87a04c70c2e4b0c8c97ef7ea4515ffac63e"
+    },
+    "stream-android": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-android/SKILL.md",
+      "computedHash": "94ea90a75c1ac82a7c25562ac330d5a2c6d51c40e15926ede12de69f772b4797"
+    },
+    "stream-builder": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-builder/SKILL.md",
+      "computedHash": "237d96ef5987910e32b2bb9644724a613c38eea661acadf2b36a542f41a85e63"
+    },
+    "stream-cli": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-cli/SKILL.md",
+      "computedHash": "a3a134407c3514210a0ab8b0b1a7ef11be4dd7a2a902ab847206cfef3d61de01"
+    },
+    "stream-docs": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-docs/SKILL.md",
+      "computedHash": "8dc6db67bbbd05febefacdb93e6e051df7878dcfc0b10988e5e5b3215f5f68c3"
+    },
+    "stream-flutter": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-flutter/SKILL.md",
+      "computedHash": "e5abbceafba3edff33cbb1369fd77205db59959b40ad8e6bc07d5373062f767b"
+    },
+    "stream-react": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-react/SKILL.md",
+      "computedHash": "892a7254feb86935e0f9e634388d38b7dc5b5b846ac235fb60dd3102fb1be276"
+    },
+    "stream-react-native": {
+      "source": "GetStream/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/stream-react-native/SKILL.md",
+      "computedHash": "9f9598d2c0925b1993e46201b40b484f30938b2635a473b97bd23dc5798300bd"
+    },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",

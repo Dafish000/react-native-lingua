@@ -10,14 +10,7 @@ import { useLanguageStore } from "../../store/languageStore";
 import { Pressable, ScrollView, Text, View } from "../../tw";
 import { Image } from "../../tw/image";
 import type { Lesson } from "../../types/learning";
-
-function getLangCode(unitId: string) {
-  return unitId.split("-")[0] ?? "es";
-}
-
-function extractTeacherName(prompt: string) {
-  return prompt.match(/named (\w+)/)?.[1] ?? "Teacher";
-}
+import { extractTeacherName, getLangCode } from "../../utils/lesson-helpers";
 
 // ── Lesson card ───────────────────────────────────────────────────────────────
 function LessonCard({
