@@ -134,7 +134,7 @@ export default function AiTeacher() {
         {/* CTA for the current in-progress lesson */}
         {inProgressLesson && (
           <Pressable
-            onPress={() => router.push(`/audio-lesson/${inProgressLesson.id}`)}
+            onPress={() => router.push(`/lesson/${inProgressLesson.id}`)}
             className="flex-row items-center mt-4 mb-0 p-3 rounded-2xl"
             style={{ backgroundColor: color }}
           >

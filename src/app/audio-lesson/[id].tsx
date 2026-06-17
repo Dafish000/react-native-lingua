@@ -5,9 +5,14 @@ import {
   isLiquidGlassAvailable,
 } from "expo-glass-effect";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+// Lazy-require so a missing native module doesn't crash the whole screen
+type SpeechModule = typeof import("expo-speech");
+let Speech: SpeechModule | null = null;
+try { Speech = require("expo-speech"); } catch { /* native module not available in this build */ }
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from "expo-constants";
 import type { Call, StreamVideoParticipant } from "@stream-io/video-react-native-sdk";
 import {
   CallingState,
@@ -29,6 +34,7 @@ import type { Lesson } from "../../types/learning";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type CallStatus = "connecting" | "connected" | "reconnecting" | "error" | "offline";
+type AgentStatus = "idle" | "connecting" | "connected" | "failed";
 
 const STATUS_CONFIG: Record<CallStatus, { dot: string; label: string }> = {
   connecting: { dot: "#F59E0B", label: "Connecting..." },
@@ -38,11 +44,29 @@ const STATUS_CONFIG: Record<CallStatus, { dot: string; label: string }> = {
   offline: { dot: "#9CA3AF", label: "Practice Mode" },
 };
 
+const AGENT_STATUS_CONFIG: Record<AgentStatus, { dot: string; label: string }> = {
+  idle: { dot: "#9CA3AF", label: "AI Teacher" },
+  connecting: { dot: "#F59E0B", label: "AI Joining..." },
+  connected: { dot: "#21C16B", label: "AI Ready" },
+  failed: { dot: "#EF4444", label: "AI Offline" },
+};
+
 const FEEDBACK: { label: string; color: string }[] = [
   { label: "Excellent", color: "#21C16B" },
   { label: "Great", color: "#21C16B" },
   { label: "Good", color: "#6C4EF5" },
 ];
+
+// ── Dev-safe API base URL (mirrors the logic in _layout.tsx) ─────────────────
+
+function getApiUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+  if (__DEV__) {
+    const hostUri = Constants.expoConfig?.hostUri;
+    if (hostUri) return `http://${hostUri.split(":")[0]}:8081`;
+  }
+  return "http://localhost:8081";
+}
 
 // ── Control button ─────────────────────────────────────────────────────────────
 
@@ -70,7 +94,6 @@ function ControlBtn({
 }
 
 // ── Shared lesson UI ──────────────────────────────────────────────────────────
-// Receives all call state as plain props so it can render inside or outside StreamCall.
 
 function LessonUI({
   lesson,
@@ -79,6 +102,8 @@ function LessonUI({
   participantCount,
   callStatus,
   callError,
+  agentStatus,
+  isAgentSpeaking,
   cameraPreview,
   onToggleMic,
   onToggleCam,
@@ -90,6 +115,8 @@ function LessonUI({
   participantCount: number;
   callStatus: CallStatus;
   callError?: string;
+  agentStatus: AgentStatus;
+  isAgentSpeaking: boolean;
   cameraPreview?: React.ReactNode;
   onToggleMic: () => void;
   onToggleCam: () => void;
@@ -97,6 +124,26 @@ function LessonUI({
 }) {
   const router = useRouter();
   const [subtitlesOn, setSubtitlesOn] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // When the agent first connects it immediately plays its intro.
+  // Stream's isSpeaking flag can lag, so we show "speaking" for the first
+  // 12 seconds after the agent joins to cover the full introduction.
+  const [introPhase, setIntroPhase] = useState(false);
+  const introTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (agentStatus === "connected") {
+      setIntroPhase(true);
+      introTimerRef.current = setTimeout(() => setIntroPhase(false), 12_000);
+    } else {
+      setIntroPhase(false);
+      if (introTimerRef.current) clearTimeout(introTimerRef.current);
+    }
+    return () => { if (introTimerRef.current) clearTimeout(introTimerRef.current); };
+  }, [agentStatus]);
+
+  // True whenever the agent is actually speaking OR during the intro window
+  const agentIsSpeaking = isAgentSpeaking || introPhase;
 
   const langCode = getLangCode(lesson.unitId);
   const language = getLanguage(langCode);
@@ -115,8 +162,32 @@ function LessonUI({
   const sampleTranslation =
     lesson.phrases[0]?.translation ?? lesson.vocabulary[0]?.translation ?? "";
 
+  const speechLang: Record<string, string> = {
+    es: "es-ES",
+    fr: "fr-FR",
+    ja: "ja-JP",
+    pt: "pt-BR",
+  };
+
+  const speakPhrase = () => {
+    if (!Speech) return;
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+    Speech.speak(samplePhrase, {
+      language: speechLang[langCode] ?? "en-US",
+      onStart: () => setIsSpeaking(true),
+      onDone: () => setIsSpeaking(false),
+      onStopped: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    });
+  };
+
   const feedbackLabels = ["Speaking", "Pronunciation", "Grammar"];
   const { dot, label } = STATUS_CONFIG[callStatus];
+  const agentCfg = AGENT_STATUS_CONFIG[agentStatus];
 
   return (
     <SafeAreaView
@@ -136,6 +207,8 @@ function LessonUI({
           <Text className="font-poppins-bold text-[17px] text-text-primary">
             AI Teacher
           </Text>
+
+          {/* Call status + agent status on the same row */}
           <View className="flex-row items-center gap-1">
             {callStatus === "connecting" || callStatus === "reconnecting" ? (
               <ActivityIndicator size={10} color={dot} />
@@ -144,6 +217,17 @@ function LessonUI({
             )}
             <Text className="font-poppins text-[12px]" style={{ color: dot }}>
               {callError ? "Connection failed" : label}
+            </Text>
+
+            <Text className="font-poppins text-[12px] text-text-secondary mx-0.5">·</Text>
+
+            {agentStatus === "connecting" ? (
+              <ActivityIndicator size={10} color={agentCfg.dot} />
+            ) : (
+              <View style={[styles.statusDot, { backgroundColor: agentCfg.dot }]} />
+            )}
+            <Text className="font-poppins text-[12px]" style={{ color: agentCfg.dot }}>
+              {agentCfg.label}
             </Text>
           </View>
         </View>
@@ -195,21 +279,52 @@ function LessonUI({
         {/* Speech bubble */}
         <View style={styles.bubble}>
           <View className="flex-1">
-            <Text className="font-poppins-bold text-[17px] text-text-primary">
-              {samplePhrase}
-            </Text>
-            {!!sampleTranslation && (
-              <Text className="font-poppins text-[13px] text-text-secondary mt-0.5">
-                {sampleTranslation} 👏
-              </Text>
+            {agentStatus === "connected" && !isMuted ? (
+              <>
+                <View className="flex-row items-center gap-2 mb-0.5">
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: agentIsSpeaking ? langColor : "#21C16B" },
+                    ]}
+                  />
+                  <Text
+                    className="font-poppins-semibold text-[13px]"
+                    style={{ color: agentIsSpeaking ? langColor : "#21C16B" }}
+                  >
+                    {agentIsSpeaking ? "AI Teacher is speaking..." : "Listening to you..."}
+                  </Text>
+                </View>
+                <Text className="font-poppins text-[12px] text-text-secondary">
+                  {agentIsSpeaking
+                    ? "Listen carefully and get ready to repeat"
+                    : `Speak in ${language?.name ?? "the target language"}`}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text className="font-poppins-bold text-[17px] text-text-primary">
+                  {samplePhrase}
+                </Text>
+                {!!sampleTranslation && (
+                  <Text className="font-poppins text-[13px] text-text-secondary mt-0.5">
+                    {sampleTranslation} 👏
+                  </Text>
+                )}
+              </>
             )}
           </View>
-          <View
+          <Pressable
+            onPress={speakPhrase}
             className="w-9 h-9 rounded-full items-center justify-center ml-3"
-            style={{ backgroundColor: langColor + "30" }}
+            style={{ backgroundColor: isSpeaking ? langColor : langColor + "30" }}
           >
-            <Ionicons name="volume-high" size={18} color={langColor} />
-          </View>
+            <Ionicons
+              name={isSpeaking ? "volume-high" : "volume-medium-outline"}
+              size={18}
+              color={isSpeaking ? "#FFFFFF" : langColor}
+            />
+          </Pressable>
         </View>
 
         {/* Front camera PIP — top-right corner of the teacher card */}
@@ -235,7 +350,7 @@ function LessonUI({
             </Text>
           </View>
 
-          {/* Mic — wired to real Stream mute state when in a call */}
+          {/* Mic */}
           <View className="items-center gap-1.5">
             <ControlBtn
               icon={isMuted ? "mic-off" : "mic"}
@@ -259,7 +374,7 @@ function LessonUI({
             </Text>
           </View>
 
-          {/* End Call — calls call.leave() then navigates back */}
+          {/* End Call */}
           <View className="items-center gap-1.5">
             <ControlBtn
               icon="call"
@@ -299,7 +414,7 @@ function LessonUI({
                 className="font-poppins-semibold text-[13px]"
                 style={{ color: FEEDBACK[i]?.color ?? "#21C16B" }}
               >
-                {callStatus === "connected"
+                {callStatus === "connected" && agentStatus === "connected"
                   ? FEEDBACK[i]?.label ?? "—"
                   : "—"}
               </Text>
@@ -333,13 +448,29 @@ function LessonUI({
           </Text>
         </View>
       )}
+
+      {agentStatus === "failed" && (
+        <View className="mx-4 mt-2 p-3 rounded-2xl" style={{ backgroundColor: "#FEF2F2" }}>
+          <Text className="font-poppins text-[12px]" style={{ color: "#EF4444" }}>
+            ⚠ AI teacher could not join. Check that the Vision Agent server is running.
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 // ── Active call content — inside <StreamCall>, uses Stream hooks ───────────────
 
-function ActiveLessonScreen({ lesson, callError }: { lesson: Lesson; callError?: string }) {
+function ActiveLessonScreen({
+  lesson,
+  callError,
+  agentStatus,
+}: {
+  lesson: Lesson;
+  callError?: string;
+  agentStatus: AgentStatus;
+}) {
   const router = useRouter();
   const call = useCall();
   const {
@@ -358,9 +489,13 @@ function ActiveLessonScreen({ lesson, callError }: { lesson: Lesson; callError?:
 
   const isMuted = micStatus === "disabled";
   const isCamActive = cameraStatus === "enabled";
+
+  const agentParticipant = participants.find(
+    (p) => p.userId === "lingua-ai-teacher"
+  ) as StreamVideoParticipant | undefined;
+  const isAgentSpeaking = agentParticipant?.isSpeaking ?? false;
   const hasLeft = callingState === CallingState.LEFT;
 
-  // Navigate back when the call ends (e.g. host ends for everyone)
   useEffect(() => {
     if (hasLeft) router.back();
   }, [hasLeft, router]);
@@ -409,7 +544,6 @@ function ActiveLessonScreen({ lesson, callError }: { lesson: Lesson; callError?:
     router.back();
   };
 
-  // Live front-camera preview rendered inside the teacher card PIP slot
   const cameraPreview =
     localParticipant ? (
       <VideoRenderer
@@ -429,6 +563,8 @@ function ActiveLessonScreen({ lesson, callError }: { lesson: Lesson; callError?:
       participantCount={participants.length}
       callStatus={callStatus}
       callError={callError}
+      agentStatus={agentStatus}
+      isAgentSpeaking={isAgentSpeaking}
       cameraPreview={cameraPreview}
       onToggleMic={toggleMic}
       onToggleCam={toggleCam}
@@ -438,8 +574,6 @@ function ActiveLessonScreen({ lesson, callError }: { lesson: Lesson; callError?:
 }
 
 // ── Main exported screen ──────────────────────────────────────────────────────
-// Creates the Stream call, wraps the inner screen in <StreamCall>, and falls
-// back to a static offline view when no Stream client is available.
 
 export default function AudioLessonScreen() {
   const router = useRouter();
@@ -450,36 +584,116 @@ export default function AudioLessonScreen() {
 
   const [call, setCall] = useState<Call | undefined>();
   const [callError, setCallError] = useState<string | undefined>();
-  // Local mic/cam state used in the offline/connecting fallback only
+  const [agentStatus, setAgentStatus] = useState<AgentStatus>("idle");
+
+  // Local mic/cam state for the offline/connecting fallback only
   const [localMuted, setLocalMuted] = useState(false);
   const [localCamActive, setLocalCamActive] = useState(false);
 
-  // Stable primitive — prevents the effect from re-running when the lesson
-  // object reference changes but the id stays the same.
+  // Refs — survive re-renders without triggering them
+  const agentSessionIdRef = useRef<string | null>(null);
+  const agentCallIdRef = useRef<string | null>(null);
+
   const lessonId = lesson?.id;
 
   useEffect(() => {
-    if (!client || !lessonId || !userId) return;
+    if (!client || !lessonId || !userId || !lesson) return;
 
-    // One call per user per lesson — ensures private practice sessions
-    const c = client.call("default", `lesson-${lessonId}-${userId}`, {
-      reuseInstance: true,
-    });
+    const callId = `lesson-${lessonId}-${userId}`;
+    agentCallIdRef.current = callId;
 
-    // Defer setState to avoid synchronous state update inside the effect body
+    const c = client.call("default", callId, { reuseInstance: true });
     void Promise.resolve().then(() => setCall(c));
 
-    c.join({ create: true }).catch((err: Error) => {
-      setCallError(err.message ?? "Failed to connect to the lesson");
+    const apiUrl = getApiUrl();
+
+    const stopAgent = async (cid: string, sessionId: string) => {
+      try {
+        await fetch(`${apiUrl}/api/agent/stop`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callId: cid, sessionId }),
+        });
+      } catch (err) {
+        console.warn("[agent] stop request failed:", err);
+      }
+    };
+
+    const run = async () => {
+      // Join the call (creates it if this is the first join for this lesson/user pair)
+      await c.join({ create: true });
+      // Enable mic immediately so the agent can hear the user
+      try { await c.microphone.enable(); } catch { /* permissions may not be granted yet */ }
+
+      // Pack lesson context into the call's custom data so the agent can read it on join
+      await c.update({
+        custom: {
+          lessonId: lesson.id,
+          language: getLangCode(lesson.unitId),
+          goals: lesson.goals,
+          vocabulary: lesson.vocabulary.map((v) => ({
+            word: v.word,
+            translation: v.translation,
+          })),
+          phrases: lesson.phrases.map((p) => ({
+            phrase: p.phrase,
+            translation: p.translation,
+          })),
+          aiTeacherPrompt: lesson.aiTeacherPrompt,
+        },
+      });
+
+      // Start the Vision Agent — server route handles admin role + goLive
+      setAgentStatus("connecting");
+      const res = await fetch(`${apiUrl}/api/agent/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId, callType: "default" }),
+      });
+
+      const data = (await res.json()) as { sessionId?: string; error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error ?? `Agent start failed (${res.status})`);
+      }
+
+      agentSessionIdRef.current = data.sessionId ?? null;
+      setAgentStatus("connected");
+    };
+
+    run().catch((err: Error) => {
+      const msg = err.message ?? "Failed to connect to the lesson";
+      console.error("[lesson] run failed:", msg);
+      // Distinguish call errors from agent errors
+      if (agentStatus === "connecting" || agentSessionIdRef.current === null) {
+        if (msg.includes("agent") || msg.includes("Agent") || msg.includes("Vision")) {
+          setAgentStatus("failed");
+        } else {
+          setCallError(msg);
+        }
+      } else {
+        setCallError(msg);
+      }
     });
 
     return () => {
       setCallError(undefined);
+      setAgentStatus("idle");
+
+      // Stop the agent session — best-effort
+      const sessionId = agentSessionIdRef.current;
+      agentSessionIdRef.current = null;
+      if (sessionId) {
+        void stopAgent(callId, sessionId);
+      }
+
       if (c.state.callingState !== CallingState.LEFT) {
         c.leave().catch(console.error);
       }
       setCall(undefined);
     };
+  // `lesson` is excluded because it's stable when `lessonId` is stable
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, lessonId, userId]);
 
   if (!lesson) {
@@ -497,16 +711,19 @@ export default function AudioLessonScreen() {
     );
   }
 
-  // Stream call is active — render with live call state
   if (call) {
     return (
       <StreamCall call={call}>
-        <ActiveLessonScreen lesson={lesson} callError={callError} />
+        <ActiveLessonScreen
+          lesson={lesson}
+          callError={callError}
+          agentStatus={agentStatus}
+        />
       </StreamCall>
     );
   }
 
-  // Offline / connecting fallback — static UI with local state
+  // Offline / connecting fallback
   const isConnecting = !!client && !callError;
 
   return (
@@ -517,6 +734,8 @@ export default function AudioLessonScreen() {
       participantCount={1}
       callStatus={callError ? "error" : isConnecting ? "connecting" : "offline"}
       callError={callError}
+      agentStatus={agentStatus}
+      isAgentSpeaking={false}
       onToggleMic={() => setLocalMuted((v) => !v)}
       onToggleCam={() => setLocalCamActive((v) => !v)}
       onEndCall={() => router.back()}

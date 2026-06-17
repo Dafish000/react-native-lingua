@@ -1,25 +1,25 @@
-import "../global.css";
 import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
-import { Stack, usePathname, useGlobalSearchParams } from "expo-router";
+import type {
+  DeepPartial,
+  StreamVideoClient as StreamVideoClientType,
+  Theme,
+  User,
+} from "@stream-io/video-react-native-sdk";
+import Constants from "expo-constants";
 import { useFonts } from "expo-font";
-import { useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
+import { Stack, useGlobalSearchParams, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { PostHogProvider } from "posthog-react-native";
-import { posthog } from "../config/posthog";
+import { useEffect, useRef, useState } from "react";
+import { Platform } from "react-native";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { posthog } from "../config/posthog";
+import "../global.css";
 import {
   StreamVideo,
   StreamVideoClient,
 } from "../lib/stream-video";
-import type {
-  Theme,
-  DeepPartial,
-  User,
-  StreamVideoClient as StreamVideoClientType,
-} from "@stream-io/video-react-native-sdk";
-import Constants from "expo-constants";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -75,7 +75,7 @@ function StreamVideoWrapper({ children }: { children: React.ReactNode }) {
       const res = await fetch(`${getApiUrl()}/api/stream-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, userName: streamUser.name }),
+        body: JSON.stringify({ userId: streamUser.id }),
       });
       if (!res.ok) throw new Error(`Stream token fetch failed: ${res.status}`);
       const data = (await res.json()) as { token: string };

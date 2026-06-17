@@ -4,7 +4,7 @@
  * @returns Language code (e.g., "es", "fr"), defaults to "es"
  */
 export function getLangCode(unitId: string): string {
-  return unitId.split("-")[0] ?? "es";
+  return unitId.split("-")[0] || "es";
 }
 
 /**
