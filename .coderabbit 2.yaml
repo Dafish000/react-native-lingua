@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit configuration — tuned for this React Native + Expo + TypeScript project.
+# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+language: en-US
+early_access: false
+
+reviews:
+  # Concise, actionable summaries
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  # Guidance for the reviewer specific to this codebase
+  path_instructions:
+    - path: "src/**/*.{ts,tsx}"
+      instructions: >
+        This is an Expo Router + NativeWind app. Prefer NativeWind/Tailwind
+        className styling over StyleSheet (except for SafeAreaView, Modal,
+        Animated, and platform/dynamic styles). Flag any `any` types, secrets
+        committed to the client, and direct image imports that bypass
+        constants/images.ts. Global client state should use Zustand.
+    - path: "src/app/api/**"
+      instructions: >
+        Server-side API routes. Ensure secrets/tokens stay server-side and are
+        never returned to or embedded in the mobile client.
+    - path: "vision-agent/**"
+      instructions: >
+        Python Stream Vision Agent backend. Check that .env values and API keys
+        are not hardcoded.
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - dev
+
+  # Keep noisy/generated paths out of reviews
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.venv/**"
+    - "!**/package-lock.json"
+    - "!**/*.lock"
+    - "!**/uv.lock"
+    - "!**/assets/**"
+
+chat:
+  auto_reply: true

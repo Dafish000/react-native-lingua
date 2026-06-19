@@ -137,12 +137,17 @@ export default function LanguageSelect() {
             }
           }}
           disabled={!selectedCode}
-          className="btn btn--lg btn--primary rounded-2xl"
-          style={{ opacity: selectedCode ? 1 : 0.4 }}
+          className="btn btn--lg rounded-full py-3"
+          style={{
+            opacity: selectedCode ? 1 : 0.4,
+            backgroundColor: "rgba(108, 78, 245, 0.08)",
+            borderWidth: 1.5,
+            borderColor: "rgba(108, 78, 245, 0.35)",
+          }}
         >
           <Text
-            className="text-white text-base"
-            style={{ fontFamily: "Poppins-SemiBold" }}
+            className="text-base"
+            style={{ fontFamily: "Poppins-SemiBold", color: "#6C4EF5" }}
           >
             {selectedLanguage
               ? `Start Learning ${selectedLanguage.name}`

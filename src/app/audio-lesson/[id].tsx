@@ -22,7 +22,7 @@ import {
   useCallStateHooks,
   useStreamVideoClient,
 } from "../../lib/stream-video";
-import { useAuth } from "@clerk/expo";
+import { useAuth, useUser } from "@clerk/expo";
 import { images } from "../../constants/images";
 import { getLanguage } from "../../data/languages";
 import { getLessonById } from "../../data/lessons";
@@ -46,7 +46,7 @@ const STATUS_CONFIG: Record<CallStatus, { dot: string; label: string }> = {
 
 const AGENT_STATUS_CONFIG: Record<AgentStatus, { dot: string; label: string }> = {
   idle: { dot: "#9CA3AF", label: "AI Teacher" },
-  connecting: { dot: "#F59E0B", label: "AI Joining..." },
+  connecting: { dot: "#F59E0B", label: "AI is joining" },
   connected: { dot: "#21C16B", label: "AI Ready" },
   failed: { dot: "#EF4444", label: "AI Offline" },
 };
@@ -496,6 +496,13 @@ function ActiveLessonScreen({
   const isAgentSpeaking = agentParticipant?.isSpeaking ?? false;
   const hasLeft = callingState === CallingState.LEFT;
 
+  // The server marks the agent "connected" as soon as the session request returns,
+  // but the OpenAI agent takes a moment to actually join the call. Until it really
+  // shows up as a participant (the call goes from 1 -> 2 people), keep showing
+  // "AI is joining" instead of a premature "AI Ready".
+  const displayedAgentStatus: AgentStatus =
+    agentStatus === "connected" && !agentParticipant ? "connecting" : agentStatus;
+
   useEffect(() => {
     if (hasLeft) router.back();
   }, [hasLeft, router]);
@@ -563,7 +570,7 @@ function ActiveLessonScreen({
       participantCount={participants.length}
       callStatus={callStatus}
       callError={callError}
-      agentStatus={agentStatus}
+      agentStatus={displayedAgentStatus}
       isAgentSpeaking={isAgentSpeaking}
       cameraPreview={cameraPreview}
       onToggleMic={toggleMic}
@@ -579,6 +586,8 @@ export default function AudioLessonScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId } = useAuth();
+  const { user } = useUser();
+  const studentName = user?.firstName ?? "";
   const lesson = getLessonById(id);
   const client = useStreamVideoClient();
 
@@ -629,6 +638,7 @@ export default function AudioLessonScreen() {
       await c.update({
         custom: {
           lessonId: lesson.id,
+          studentName,
           language: getLangCode(lesson.unitId),
           goals: lesson.goals,
           vocabulary: lesson.vocabulary.map((v) => ({
@@ -663,15 +673,20 @@ export default function AudioLessonScreen() {
 
     run().catch((err: Error) => {
       const msg = err.message ?? "Failed to connect to the lesson";
-      console.error("[lesson] run failed:", msg);
-      // Distinguish call errors from agent errors
-      if (agentStatus === "connecting" || agentSessionIdRef.current === null) {
-        if (msg.includes("agent") || msg.includes("Agent") || msg.includes("Vision")) {
-          setAgentStatus("failed");
-        } else {
-          setCallError(msg);
-        }
+
+      // The AI teacher (Vision Agent server) may be offline. That's an expected,
+      // handled condition — the call still joined, so surface it as a status, not
+      // a hard error/redbox. Use the ref (not the stale `agentStatus` closure value)
+      // to know whether the agent ever connected.
+      const isAgentError =
+        agentSessionIdRef.current === null &&
+        (msg.includes("agent") || msg.includes("Agent") || msg.includes("Vision"));
+
+      if (isAgentError) {
+        console.warn("[lesson] AI teacher unavailable:", msg);
+        setAgentStatus("failed");
       } else {
+        console.error("[lesson] run failed:", msg);
         setCallError(msg);
       }
     });
