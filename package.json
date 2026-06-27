@@ -12,6 +12,7 @@
     "@stream-io/node-sdk": "^0.7.59",
     "@stream-io/react-native-webrtc": "^145.0.0",
     "@stream-io/video-react-native-sdk": "^1.38.2",
+    "@stripe/stripe-react-native": "0.64.0",
     "@tailwindcss/postcss": "^4.3.0",
     "clsx": "^2.1.1",
     "expo": "~56.0.8",

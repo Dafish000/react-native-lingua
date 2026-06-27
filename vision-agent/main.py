@@ -136,6 +136,61 @@ REALTIME_SESSION = {
 INTRO_PROTECT_SECONDS = 14.0
 
 
+def _forward_live_captions(agent: Agent) -> None:
+    """Stream the AI teacher's and the student's transcripts to the app as
+    live captions.
+
+    The OpenAI realtime model already transcribes both sides of the call:
+      - the teacher's own speech (``response.audio_transcript.done``)
+      - the student's speech  (``...input_audio_transcription.completed``)
+
+    The plugin surfaces these through two internal hooks on the LLM —
+    ``_emit_agent_speech_transcription`` and ``_emit_user_speech_transcription``.
+    We wrap those hooks so that, in addition to their normal job, each finished
+    transcript is broadcast to every participant as a Stream custom event. The
+    mobile app listens for ``call.on("custom", ...)`` and renders the captions.
+
+    This reuses transcripts the agent is already producing, so it adds no extra
+    STT cost or latency — we're just forwarding text the model hands us.
+    """
+    llm = agent.llm
+    original_agent_emit = llm._emit_agent_speech_transcription
+    original_user_emit = llm._emit_user_speech_transcription
+
+    def _broadcast(speaker: str, text: str, mode: str) -> None:
+        clean = (text or "").strip()
+        if not clean:
+            return
+
+        async def _send() -> None:
+            try:
+                await agent.edge.send_custom_event(
+                    {
+                        # Namespaced so the app can ignore unrelated custom events
+                        "type": "lesson.caption",
+                        "speaker": speaker,  # "agent" (teacher) or "user" (student)
+                        "text": clean[:800],  # keep well under the 5KB event limit
+                        "mode": mode,  # "final" for completed utterances
+                    }
+                )
+            except Exception as exc:
+                print(f"[captions] failed to send {speaker} caption: {exc}")
+
+        # Fire-and-forget — never block the audio/transcript pipeline.
+        asyncio.create_task(_send())
+
+    def agent_emit(text: str, *, mode) -> None:
+        _broadcast("agent", text, mode)
+        return original_agent_emit(text, mode=mode)
+
+    def user_emit(text: str, *, mode) -> None:
+        _broadcast("user", text, mode)
+        return original_user_emit(text, mode=mode)
+
+    llm._emit_agent_speech_transcription = agent_emit
+    llm._emit_user_speech_transcription = user_emit
+
+
 async def _set_turn_detection(agent: Agent, turn_detection: dict | None) -> None:
     """Change the realtime session's turn detection while the call is live.
 
@@ -240,6 +295,10 @@ async def join_call(agent: Agent, call_type: str, call_id: str, **kwargs) -> Non
         )
 
     async with agent.join(call):
+        # Broadcast both sides' transcripts to the app as live captions. Set up
+        # before the intro so the teacher's opening line is captioned too.
+        _forward_live_captions(agent)
+
         # Turn OFF voice-activity detection for the intro so background noise
         # can't trip an interrupt mid-sentence. This lets the agent deliver the
         # whole introduction script start to finish.

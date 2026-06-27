@@ -51,6 +51,13 @@ export default {
         },
       ],
       ["expo-build-properties", { android: { minSdkVersion: 24 } }],
+      [
+        "@stripe/stripe-react-native",
+        {
+          merchantIdentifier: "",
+          enableGooglePay: false,
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,

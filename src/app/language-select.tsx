@@ -1,12 +1,26 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { usePostHog } from "posthog-react-native";
 import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { images } from "../constants/images";
 import { LANGUAGES } from "../data/languages";
+import {
+  canAccessLanguageTier,
+  getActiveUserTier,
+} from "../lib/subscription";
 import { useLanguageStore } from "../store/languageStore";
 import { Pressable, ScrollView, Text, TextInput, View } from "../tw";
 import { Image } from "../tw/image";
+
+// These are experimental Clerk billing hooks.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { useSubscription } = require("@clerk/react/experimental");
+
+const TIER_UPGRADE_LABEL: Record<string, string> = {
+  silver: "Silver",
+  gold: "Gold",
+};
 
 export default function LanguageSelect() {
   const router = useRouter();
@@ -15,12 +29,24 @@ export default function LanguageSelect() {
   const [searchQuery, setSearchQuery] = useState("");
   const posthog = usePostHog();
 
+  const { data: subscription } = useSubscription({ for: "user" });
+  const userTier = getActiveUserTier(subscription);
+
   const selectedLanguage = LANGUAGES.find((l) => l.code === selectedCode);
   const filteredLanguages = LANGUAGES.filter(
     (l) =>
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.nativeName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  function handleLanguagePress(code: string, tier: string) {
+    if (!canAccessLanguageTier(tier as any, userTier)) {
+      // Nudge user to upgrade
+      router.push("/subscription");
+      return;
+    }
+    setSelectedCode(code);
+  }
 
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-background">
@@ -64,30 +90,42 @@ export default function LanguageSelect() {
           )}
         </View>
 
-        {/* Language list — vertical */}
+        {/* Language list */}
         <View className="gap-3">
           {filteredLanguages.length === 0 ? (
             <View className="items-center py-10">
               <Text className="body-md text-text-secondary">No languages found</Text>
             </View>
           ) : null}
+
           {filteredLanguages.map((lang) => {
             const isSelected = selectedCode === lang.code;
+            const isLocked = !canAccessLanguageTier(lang.tier, userTier);
+
             return (
               <Pressable
                 key={lang.code}
-                onPress={() => setSelectedCode(lang.code)}
+                onPress={() => handleLanguagePress(lang.code, lang.tier)}
                 style={{
-                  borderColor: isSelected ? lang.color : "#E5E7EB",
+                  borderColor: isLocked
+                    ? "#E5E7EB"
+                    : isSelected
+                    ? lang.color
+                    : "#E5E7EB",
                   borderWidth: isSelected ? 2 : 1.5,
-                  backgroundColor: isSelected ? `${lang.color}18` : "#FFFFFF",
+                  backgroundColor: isLocked
+                    ? "#F9FAFB"
+                    : isSelected
+                    ? `${lang.color}18`
+                    : "#FFFFFF",
+                  opacity: isLocked ? 0.75 : 1,
                 }}
                 className="rounded-2xl px-4 py-3 flex-row items-center"
               >
                 <Image
                   source={{ uri: lang.flag }}
                   className="w-14 h-9 rounded-md"
-                  style={{ resizeMode: "cover" }}
+                  style={{ resizeMode: "cover", opacity: isLocked ? 0.5 : 1 }}
                 />
                 <View className="ml-4 flex-1">
                   <Text
@@ -96,25 +134,42 @@ export default function LanguageSelect() {
                   >
                     {lang.name}
                   </Text>
-                  <Text className="caption text-text-secondary mt-0.5">
-                    {lang.nativeName}
-                  </Text>
+                  {isLocked ? (
+                    <Text
+                      className="caption mt-0.5"
+                      style={{ color: "#6C4EF5", fontFamily: "Poppins-Medium" }}
+                    >
+                      {TIER_UPGRADE_LABEL[lang.tier] ?? lang.tier} plan required
+                    </Text>
+                  ) : (
+                    <Text className="caption text-text-secondary mt-0.5">
+                      {lang.nativeName}
+                    </Text>
+                  )}
                 </View>
-                {isSelected && (
+
+                {isLocked ? (
+                  <View
+                    className="w-7 h-7 rounded-full items-center justify-center"
+                    style={{ backgroundColor: "rgba(108,78,245,0.1)" }}
+                  >
+                    <Ionicons name="lock-closed" size={13} color="#6C4EF5" />
+                  </View>
+                ) : isSelected ? (
                   <View
                     className="w-6 h-6 rounded-full items-center justify-center"
                     style={{ backgroundColor: lang.color }}
                   >
                     <Text className="text-white text-xs">✓</Text>
                   </View>
-                )}
+                ) : null}
               </Pressable>
             );
           })}
         </View>
       </ScrollView>
 
-      {/* Earth image — anchored between language list and button */}
+      {/* Earth image */}
       <View className="bg-surface">
         <Image
           source={images.earth}

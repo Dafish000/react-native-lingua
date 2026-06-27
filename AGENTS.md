@@ -416,6 +416,33 @@ Use Clerk for authentication.
 
 Do not build custom auth.
 
+### Clerk Billing / Subscription
+
+Use `@clerk/expo` for billing and subscription features in the mobile app.
+
+When implementing billing:
+
+- Use Clerk's billing APIs and components — do not build a custom payment flow
+- Never expose `CLERK_SECRET_KEY` or any Clerk secret in client/mobile code
+- All subscription checks and plan management should go through Clerk's backend SDK or API routes
+- Use Expo Router API routes (server-side) to call Clerk's Backend REST API for billing operations
+- Do not store subscription status in Zustand or AsyncStorage as the source of truth — always re-verify with Clerk on the server side
+- Use `useUser()` or `useOrganization()` from `@clerk/expo` to read plan/subscription metadata on the client
+- For gating features: check `user.publicMetadata` or `user.privateMetadata` populated from the server after a Clerk webhook or API call
+- Clerk webhooks (e.g. `user.updated`, subscription events) should be handled in an Expo API route and used to update any local state
+
+### Clerk CLI Setup (for new projects or re-initialization)
+
+If setting up Clerk from scratch:
+
+1. Install/update Clerk CLI: `npm install -g clerk`
+2. Authenticate: `clerk auth login` (opens browser)
+3. Initialize: `clerk init` in project root (auto-detects framework)
+4. Run `clerk doctor` to verify setup
+5. Never run `clerk init --app <id>` unless the user explicitly provides an app ID
+
+Do not list Clerk apps or choose a Clerk application for the user automatically.
+
 ---
 
 ## Lesson Content Rules

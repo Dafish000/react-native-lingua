@@ -21,6 +21,19 @@ export default function Profile() {
 
       <View className="px-6 pb-4 gap-3">
         <Pressable
+          onPress={() => router.push("/subscription")}
+          className="btn rounded-full py-4 items-center"
+          style={{
+            backgroundColor: "rgba(108, 78, 245, 0.08)",
+            borderWidth: 1.5,
+            borderColor: "rgba(108, 78, 245, 0.35)",
+          }}
+        >
+          <Text className="text-base" style={{ fontFamily: "Poppins-SemiBold", color: "#6C4EF5" }}>
+            Your Subscription
+          </Text>
+        </Pressable>
+        <Pressable
           onPress={() => router.push("/language-select")}
           className="btn rounded-full py-4 items-center"
           style={{

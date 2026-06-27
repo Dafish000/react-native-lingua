@@ -36,6 +36,9 @@ import type { Lesson } from "../../types/learning";
 type CallStatus = "connecting" | "connected" | "reconnecting" | "error" | "offline";
 type AgentStatus = "idle" | "connecting" | "connected" | "failed";
 
+/** A single live-caption line forwarded from the Vision Agent. */
+type Caption = { id: string; speaker: "agent" | "user"; text: string };
+
 const STATUS_CONFIG: Record<CallStatus, { dot: string; label: string }> = {
   connecting: { dot: "#F59E0B", label: "Connecting..." },
   connected: { dot: "#21C16B", label: "Live" },
@@ -104,6 +107,7 @@ function LessonUI({
   callError,
   agentStatus,
   isAgentSpeaking,
+  captions = [],
   cameraPreview,
   onToggleMic,
   onToggleCam,
@@ -117,6 +121,7 @@ function LessonUI({
   callError?: string;
   agentStatus: AgentStatus;
   isAgentSpeaking: boolean;
+  captions?: Caption[];
   cameraPreview?: React.ReactNode;
   onToggleMic: () => void;
   onToggleCam: () => void;
@@ -275,6 +280,32 @@ function LessonUI({
             resizeMode="contain"
           />
         </View>
+
+        {/* Live captions — rolling subtitles for the teacher and the student */}
+        {subtitlesOn && captions.length > 0 && (
+          <View style={styles.captionsBand} pointerEvents="none">
+            {captions.map((c) => {
+              const isTeacher = c.speaker === "agent";
+              const accent = isTeacher ? langColor : "#60A5FA";
+              return (
+                <View key={c.id} style={styles.captionLine}>
+                  <Text
+                    className="font-poppins-semibold text-[11px]"
+                    style={{ color: accent }}
+                  >
+                    {isTeacher ? teacherName : "You"}
+                  </Text>
+                  <Text
+                    className="font-poppins text-[13px] leading-[18px]"
+                    style={styles.captionText}
+                  >
+                    {c.text}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         {/* Speech bubble */}
         <View style={styles.bubble}>
@@ -496,6 +527,32 @@ function ActiveLessonScreen({
   const isAgentSpeaking = agentParticipant?.isSpeaking ?? false;
   const hasLeft = callingState === CallingState.LEFT;
 
+  // ── Live captions ────────────────────────────────────────────────────────
+  // The Vision Agent forwards each finished transcript (teacher + student) as a
+  // "lesson.caption" custom event. We keep the few most recent lines so the
+  // screen shows a rolling, subtitle-style caption for whoever just spoke.
+  const [captions, setCaptions] = useState<Caption[]>([]);
+  useEffect(() => {
+    if (!call) return;
+    const unsubscribe = call.on("custom", (event) => {
+      const data = (event as { custom?: Record<string, unknown> }).custom;
+      if (!data || data.type !== "lesson.caption") return;
+
+      const text = typeof data.text === "string" ? data.text.trim() : "";
+      if (!text) return;
+
+      const speaker = data.speaker === "user" ? "user" : "agent";
+      const caption: Caption = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        speaker,
+        text,
+      };
+      // Keep only the last two lines so captions stay readable on screen.
+      setCaptions((prev) => [...prev, caption].slice(-2));
+    });
+    return unsubscribe;
+  }, [call]);
+
   // The server marks the agent "connected" as soon as the session request returns,
   // but the OpenAI agent takes a moment to actually join the call. Until it really
   // shows up as a participant (the call goes from 1 -> 2 people), keep showing
@@ -572,6 +629,7 @@ function ActiveLessonScreen({
       callError={callError}
       agentStatus={displayedAgentStatus}
       isAgentSpeaking={isAgentSpeaking}
+      captions={captions}
       cameraPreview={cameraPreview}
       onToggleMic={toggleMic}
       onToggleCam={toggleCam}
@@ -820,6 +878,22 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 16,
+  },
+  captionsBand: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 92,
+    gap: 6,
+  },
+  captionLine: {
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  captionText: {
+    color: "#FFFFFF",
   },
   cameraPip: {
     position: "absolute",
